@@ -43,9 +43,9 @@ class AudiobookshelfListener:
             logging.info("Disconnected from Audiobookshelf")
             self.is_authenticated = False
 
-        @self.sio.on('progress_update')
-        def on_progress_update(data):
-            self.handle_progress_update(data)
+        @self.sio.on('user_item_progress_updated')
+        def on_user_item_progress_updated(data):
+            self.handle_user_item_progress_update(data)
 
     def authenticate(self):
         logging.info("Authenticating with Audiobookshelf")
@@ -72,15 +72,15 @@ class AudiobookshelfListener:
                 logging.error(f"Error in connection: {str(e)}")
                 time.sleep(5)  # Wait before attempting to reconnect
 
-    def handle_progress_update(self, data):
+    def handle_user_item_progress_update(self, event_data):
         if not self.is_authenticated:
             logging.warning("Received update while not authenticated. Re-authenticating.")
             self.authenticate()
             return
 
         try:
-            media_progress = data.get('mediaProgress', {})
-            library_item_id = media_progress.get('libraryItemId')
+            data = event_data.get('data', {})
+            library_item_id = data.get('libraryItemId')
             if not library_item_id:
                 logging.error("No libraryItemId found in progress update")
                 return
@@ -95,9 +95,9 @@ class AudiobookshelfListener:
                 logging.error(f"No ASIN found for libraryItemId: {library_item_id}")
                 return
 
-            progress = media_progress.get('progress', 0)
-            current_time = media_progress.get('currentTime', 0)
-            duration = media_progress.get('duration', 0)
+            progress = data.get('progress', 0)
+            current_time = data.get('currentTime', 0)
+            duration = data.get('duration', 0)
 
             self.update_mediatracker(asin, progress, current_time, duration)
         except Exception as e:
