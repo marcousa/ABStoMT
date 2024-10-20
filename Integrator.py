@@ -62,7 +62,7 @@ class AudiobookshelfListener:
             self.handle_user_item_progress_update(data)
 
     def login(self):
-        url = f"{self.audiobookshelf_url}/api/login"
+        url = f"{self.audiobookshelf_url}/login"
         data = {
             "username": self.username,
             "password": self.password
