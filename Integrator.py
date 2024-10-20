@@ -12,7 +12,8 @@ import time
 import logging
 import os
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
+socketio.Client(logger=True, engineio_logger=True)
 
 class AudiobookshelfListener:
     def __init__(self):
@@ -53,15 +54,17 @@ class AudiobookshelfListener:
             self.handle_user_item_progress_update(data)
 
     def authenticate(self):
-        logging.info("Authenticating with Audiobookshelf")
+        logging.info(f"Authenticating with Audiobookshelf using token: {self.api_token[:5]}...")
         self.sio.emit('login', {'token': self.api_token}, callback=self.on_login_response)
 
     def on_login_response(self, response):
+        logging.info(f"Login response received: {response}")
         if response.get('success'):
             logging.info("Authentication successful")
             self.is_authenticated = True
+            self.sio.emit('subscribe', {'events': ['user_item_progress_updated']})
         else:
-            logging.error("Authentication failed")
+            logging.error(f"Authentication failed: {response}")
             self.is_authenticated = False
 
     def connect_to_audiobookshelf(self):
