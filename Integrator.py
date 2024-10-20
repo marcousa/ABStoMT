@@ -30,7 +30,7 @@ class AudiobookshelfListener:
         self.is_authenticated = False
 
     def setup_socket_events(self):
-        @self.sio.event
+        @self.sio.event(namespace='/PlaybackSessionManager')
         def connect():
             logging.info("Connected to Audiobookshelf")
             self.authenticate()
@@ -44,7 +44,7 @@ class AudiobookshelfListener:
             logging.info("Disconnected from Audiobookshelf")
             self.is_authenticated = False
 
-        @self.sio.on('*')
+        @self.sio.on('*', namespace='/PlaybackSessionManager')
         def catch_all(event, data):
             logging.info(f"Received event: {event}")
             logging.info(f"Event data: {data}")
@@ -72,7 +72,7 @@ class AudiobookshelfListener:
             try:
                 if not self.sio.connected:
                     logging.info("Attempting to connect to Audiobookshelf")
-                    self.sio.connect(self.audiobookshelf_url)
+                    self.sio.connect(self.audiobookshelf_url, namespaces=['/PlaybackSessionManager'])
                     self.sio.wait()
                 else:
                     time.sleep(1)  # Prevent CPU overuse in the loop
