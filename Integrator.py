@@ -18,11 +18,13 @@ socketio.Client(logger=True, engineio_logger=True)
 class AudiobookshelfListener:
     def __init__(self):
         self.audiobookshelf_url = os.environ.get('AUDIOBOOKSHELF_URL')
-        self.api_token = os.environ.get('AUDIOBOOKSHELF_API_TOKEN')
+        self.username = os.environ.get('AUDIOBOOKSHELF_USERNAME')
+        self.password = os.environ.get('AUDIOBOOKSHELF_PASSWORD')
+        self.api_token = None
         self.mediatracker_url = os.environ.get('MEDIATRACKER_URL')
         self.mediatracker_token = os.environ.get('MEDIATRACKER_TOKEN')
         
-        if not all([self.audiobookshelf_url, self.api_token, self.mediatracker_url, self.mediatracker_token]):
+        if not all([self.audiobookshelf_url, self.username, self.password, self.mediatracker_url, self.mediatracker_token]):
             raise ValueError("Missing required environment variables")
 
         self.sio = socketio.Client(logger=True, engineio_logger=True)
@@ -33,6 +35,12 @@ class AudiobookshelfListener:
         @self.sio.event
         def connect():
             logging.info("Connected to Audiobookshelf")
+            if not self.api_token:
+                logging.info("No API token found. Attempting to login.")
+                if not self.login():
+                    logging.error("Login failed. Disconnecting.")
+                    self.sio.disconnect()
+                    return
             self.authenticate()
 
         @self.sio.event
@@ -52,6 +60,23 @@ class AudiobookshelfListener:
         @self.sio.on('user_item_progress_updated')
         def on_user_item_progress_updated(data):
             self.handle_user_item_progress_update(data)
+
+    def login(self):
+        url = f"{self.audiobookshelf_url}/api/login"
+        data = {
+            "username": self.username,
+            "password": self.password
+        }
+        try:
+            response = requests.post(url, json=data)
+            response.raise_for_status()
+            user_data = response.json()
+            self.api_token = user_data['user']['token']
+            logging.info(f"Login successful. API Token: {self.api_token[:10]} ... ")
+            return True
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Login failed: {str(e)}")
+            return False
 
     def authenticate(self):
         logging.info(f"Authenticating with Audiobookshelf using token: {self.api_token[:5]}...")
