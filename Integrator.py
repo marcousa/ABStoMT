@@ -43,6 +43,11 @@ class AudiobookshelfListener:
             logging.info("Disconnected from Audiobookshelf")
             self.is_authenticated = False
 
+        @self.sio.on('*')
+        def catch_all(event, data):
+            logging.info(f"Received event: {event}")
+            logging.info(f"Event data: {data}")
+
         @self.sio.on('user_item_progress_updated')
         def on_user_item_progress_updated(data):
             self.handle_user_item_progress_update(data)
