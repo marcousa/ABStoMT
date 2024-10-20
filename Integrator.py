@@ -80,7 +80,7 @@ class AudiobookshelfListener:
 
     def authenticate(self):
         logging.info(f"Authenticating with Audiobookshelf using token: {self.api_token[:5]}...")
-        self.sio.emit('auth', {'token': self.api_token}, callback=self.on_login_response)
+        self.sio.emit('auth', self.api_token, callback=self.on_login_response)
 
     def on_login_response(self, response):
         logging.info(f"Login response received: {response}")
