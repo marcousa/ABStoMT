@@ -8,7 +8,7 @@ If the item you're listening to is not in your MediaTracker library yet, it will
 <br>  
 **The item in your Audiobookshelf library MUST have an ASIN number tied to it for the integration to work**
 
-# Docker Copmose
+# Docker Compose
 
 ```yml
 services:
