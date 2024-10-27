@@ -133,7 +133,7 @@ class AudiobookshelfListener:
             if not book_details:
                 return
 
-            asin = book_details.get('metadata', {}).get('asin')
+            asin = book_details.get('media', {}).get('metadata', {}).get('asin')
             if not asin:
                 logging.error(f"No ASIN found for libraryItemId: {library_item_id}")
                 return
