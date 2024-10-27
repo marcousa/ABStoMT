@@ -13,7 +13,6 @@ import logging
 import os
 
 logging.basicConfig(level=logging.DEBUG)
-socketio.Client(logger=True, engineio_logger=True)
 
 class AudiobookshelfListener:
     def __init__(self):
@@ -46,20 +45,27 @@ class AudiobookshelfListener:
         @self.sio.event
         def connect_error(data):
             logging.error(f"Connection error: {data}")
+            self.is_authenticated = False
 
         @self.sio.event
         def disconnect():
             logging.info("Disconnected from Audiobookshelf")
             self.is_authenticated = False
 
-        @self.sio.on('*')
-        def catch_all(event, data):
-            logging.info(f"Received event: {event}")
-            logging.info(f"Event data: {data}")
+        @self.sio.on('init')
+        def on_init(data):
+            logging.info(f"User was authorized: {data}")
+            self.is_authenticated = True
+            self.sio.emit('subscribe', {'events': ['user_item_progress_updated']})
 
         @self.sio.on('user_item_progress_updated')
         def on_user_item_progress_updated(data):
             self.handle_user_item_progress_update(data)
+
+        @self.sio.on('*')
+        def catch_all(event, data):
+            logging.info(f"Received event: {event}")
+            logging.info(f"Event data: {data}")
 
     def login(self):
         url = f"{self.audiobookshelf_url}/login"
@@ -72,7 +78,7 @@ class AudiobookshelfListener:
             response.raise_for_status()
             user_data = response.json()
             self.api_token = user_data['user']['token']
-            logging.info(f"Login successful. API Token: {self.api_token[:10]} ... ")
+            logging.info(f"Login successful. API Token: {self.api_token[:10]}...")
             return True
         except requests.exceptions.RequestException as e:
             logging.error(f"Login failed: {str(e)}")
@@ -80,17 +86,18 @@ class AudiobookshelfListener:
 
     def authenticate(self):
         logging.info(f"Authenticating with Audiobookshelf using token: {self.api_token[:5]}...")
-        self.sio.emit('auth', self.api_token, callback=self.on_login_response)
+        self.sio.emit('auth', self.api_token)
 
-    def on_login_response(self, response):
-        logging.info(f"Login response received: {response}")
-        if response.get('success'):
-            logging.info("Authentication successful")
-            self.is_authenticated = True
-            self.sio.emit('subscribe', {'events': ['user_item_progress_updated']})
-        else:
-            logging.error(f"Authentication failed: {response}")
-            self.is_authenticated = False
+    async def wait_for_connection(self, max_attempts=10, delay=1):
+        attempts = 0
+        while not self.sio.connected and attempts < max_attempts:
+            await self.sio.sleep(delay)
+            attempts += 1
+        
+        if not self.sio.connected:
+            logging.error("Failed to connect after maximum attempts")
+            return False
+        return True
 
     def connect_to_audiobookshelf(self):
         while True:
@@ -98,17 +105,21 @@ class AudiobookshelfListener:
                 if not self.sio.connected:
                     logging.info("Attempting to connect to Audiobookshelf")
                     self.sio.connect(self.audiobookshelf_url)
-                    self.sio.wait()
-                else:
-                    time.sleep(1)  # Prevent CPU overuse in the loop
+                    self.sio.sleep(1)  # Give time for connection to establish
+                    
+                if not self.wait_for_connection():
+                    logging.error("Failed to establish connection")
+                    time.sleep(5)  # Wait before retry
+                    continue
+                    
+                self.sio.wait()
             except Exception as e:
                 logging.error(f"Error in connection: {str(e)}")
                 time.sleep(5)  # Wait before attempting to reconnect
 
     def handle_user_item_progress_update(self, event_data):
         if not self.is_authenticated:
-            logging.warning("Received update while not authenticated. Re-authenticating.")
-            self.authenticate()
+            logging.warning("Received update while not authenticated")
             return
 
         try:
@@ -118,7 +129,6 @@ class AudiobookshelfListener:
                 logging.error("No libraryItemId found in progress update")
                 return
 
-            # Fetch book details from Audiobookshelf
             book_details = self.fetch_book_details(library_item_id)
             if not book_details:
                 return
@@ -162,12 +172,8 @@ class AudiobookshelfListener:
             'timestamp': int(time.time() * 1000)  # Current time in milliseconds
         }
         try:
-            response = requests.put(url, headers=headers, data=json.dumps(payload), timeout=10)
+            response = requests.put(url, headers=headers, json=payload, timeout=10)
             response.raise_for_status()
             logging.info(f"Successfully updated progress for book with ASIN {asin}")
         except requests.exceptions.RequestException as e:
             logging.error(f"Failed to update progress for book with ASIN {asin}. Error: {str(e)}")
-
-if __name__ == "__main__":
-    listener = AudiobookshelfListener()
-    listener.connect_to_audiobookshelf()
