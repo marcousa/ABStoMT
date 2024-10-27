@@ -18,8 +18,8 @@ services:
     restart: unless-stopped
     environment:
       TZ: "America/New_York"
-      PUID: 1024
-      PGID: 100
+      PUID: 1000 #modify based on your environment
+      PGID: 1000 #modify based on your environment
       AUDIOBOOKSHELF_URL: "ENTER YOUR AUDIOBOOKSHELF INSTANCE URL HERE"
       AUDIOBOOKSHELF_USERNAME: "ENTER YOUR AUDIOBOOKSHELF ID HERE"
       AUDIOBOOKSHELF_PASSWORD: "ENTER YOUR AUDIOBOOKSHELF ID PASSWORD HERE"
