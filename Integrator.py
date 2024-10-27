@@ -177,3 +177,7 @@ class AudiobookshelfListener:
             logging.info(f"Successfully updated progress for book with ASIN {asin}")
         except requests.exceptions.RequestException as e:
             logging.error(f"Failed to update progress for book with ASIN {asin}. Error: {str(e)}")
+
+if __name__ == "__main__":
+    listener = AudiobookshelfListener()
+    listener.connect_to_audiobookshelf()
