@@ -5,7 +5,7 @@
 ABStoMT is a Socket.io based connector between [Audiobookshelf](https://github.com/advplyr/audiobookshelf) and [MediaTracker](https://github.com/bonukai/MediaTracker)
 It allows progress for audiobooks to be periodically updated automatically into MediaTracker as you're listening to an item from Audiobookshelf.
 If the item you're listening to is not in your MediaTracker library yet, it will be added automatically.
-<br>
+<br>  
 **The item in your Audiobookshelf library MUST have an ASIN number tied to it for the integration to work**
 
 # Docker Copmose
