@@ -2,8 +2,6 @@
 #  Integrator.py
 #  ABSToMediaTracker
 #
-#  Created by Marco De Filippo on 10/18/24.
-#
 
 import socketio
 import requests
